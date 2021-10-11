@@ -1,3 +1,11 @@
+
+/*
+use tempdb
+go
+exec altera_tamanho_coluna_lote
+ @nome_coluna_alvo = 'serie'
+,@tipo_dados_tamanho = 'VARCHAR (5)'
+*/
 create procedure altera_tamanho_coluna_lote 
 (
 	 @nome_coluna_alvo varchar(50)

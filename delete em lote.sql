@@ -75,14 +75,15 @@ declare
 ,@tabela_aux	varchar(50)
 ,@colunas_chave	varchar(150) 
 ,@lote int
-,@executar bit = 0
+,@executar bit = 1
 
 set @tabela_delete = 'tabela1'
 set @tabela_aux = 'tabela1_aux'
-set @colunas_chave = 'serie,id_tabela1'
+set @colunas_chave = 'serie,aaaaa'--'serie,id_tabela1'
 set @lote = 1000
 /************************************************/
- 
+
+BEGIN TRY 
 set nocount on
 declare @query varchar(max) = ''
 
@@ -194,7 +195,10 @@ BEGIN
 
 	IF ISNULL(@COLUNAS_NAO_EXISTEM,'''') <> ''''
 	BEGIN
-	   RAISERROR (@COLUNAS_NAO_EXISTEM,16,0)
+	   RAISERROR (@COLUNAS_NAO_EXISTEM,16,0)  
+	   PRINT @COLUNAS_NAO_EXISTEM
+	   SELECT @COLUNAS_NAO_EXISTEM 
+	   return @COLUNAS_NAO_EXISTEM
 	END
 
 
@@ -249,7 +253,8 @@ IF NOT EXISTS (
 			  )
 BEGIN
 	ALTER TABLE ' + '' + @tabela_aux + '' + ' ADD FEITO_LOTE BIT 
-END' +
+END
+' +
 CASE WHEN @executar = 0 THEN 
 'GO' ELSE '' END 
 
@@ -310,11 +315,13 @@ SELECT @QNTD_REGISTROS = COUNT(*)
 FROM ' + @tabela_aux + ' WHERE ISNULL(FEITO_LOTE,0) = 0	
 
 PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+-----------------------------------------------------------------------------------------------------
+
 ' +
 '''
 '
 + CASE WHEN @executar = 0 THEN '
-SELECT (@QUERY) --EXIBE O DELETE EM LOTE SEM EXECUTAR
+print (@QUERY) --EXIBE O DELETE EM LOTE SEM EXECUTAR
 ' WHEN @executar = 1 THEN 
 'EXEC (@QUERY)' END + ' 
 
@@ -367,7 +374,16 @@ END
 
 if @executar = 0
 SELECT *
-FROM #TEMP_SCRIPTS 
+FROM #TEMP_SCRIPTS
+
+END TRY
+BEGIN CATCH
+
+PRINT N'Error Line = ' + CAST(ERROR_LINE() AS nvarchar(100));
+PRINT N'Error Message = ' + CAST(ERROR_MESSAGE() AS nvarchar(100));
+--PRINT @ERRO
+
+END CATCH
 
 --end -- fim da proc
 

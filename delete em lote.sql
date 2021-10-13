@@ -1,86 +1,87 @@
-use tempdb
-go
-----------------------------------------------------------------------------------------------------------------------------------
--- tabelas teste
-----------------------------------------------------------------------------------------------------------------------------------
-set nocount on
+--use tempdb
+--go
+------------------------------------------------------------------------------------------------------------------------------------
+---- tabelas teste
+------------------------------------------------------------------------------------------------------------------------------------
+--set nocount on
 
-drop table if exists tabela6
+--drop table if exists tabela6
 
-drop table if exists tabela5
+--drop table if exists tabela5
 
-drop table if exists tabela4
+--drop table if exists tabela4
 
-drop table if exists tabela3
+--drop table if exists tabela3
 
-drop table if exists tabela2
+--drop table if exists tabela2
 
-drop table if exists tabela1
-
-
-create table tabela1 (serie varchar(10) --primary key not null, 
-,id_tabela1 int)
-
---create table tabela2 (id_tabela2 int identity(1,1) primary key not null, serie2 varchar(10) --FILHA da tabela1 
---constraint 	fk_serie foreign key (serie2) references tabela1 (serie)
---)
-
---create table tabela3 (id_tabela3 int identity(1,1) primary key not null, serie varchar(3) DEFAULT NULL, id int, id_tabela2 INT	--FILHA da tabela2 - SEM FK COM A SERIE 
---constraint 	fk_id_pk foreign key (id_tabela2) references tabela2 (id_tabela2)
---)
-
---create table tabela4 (id_tabela4 int, serie varchar(3) , id int, id_tabela3 INT 	 --FILHA da tabela2 - pk composta com a coluna SERIE
---CONSTRAINT 	PK_COMPOSTA PRIMARY KEY (id_tabela4, serie)
---constraint 	fk_id_pk2 foreign key (id_tabela3) references tabela3 (id_tabela3)
---)
-
-CREATE TABLE TABELA5 (ID INT, SERIE VARCHAR(3))
-go
-CREATE TABLE TABELA6 (ID INT)
-go
+--drop table if exists tabela1
 
 
--- popula a tabela 1
-set nocount on
-INSERT INTO tabela1 VALUES ( CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID())),
-							 CONVERT(INT,(RAND()*1000))
-						  )
-GO 10000
+--create table tabela1 (serie varchar(10) --primary key not null, 
+--,id_tabela1 int)
 
-IF OBJECT_ID('TEMPDB..tabela1_aux') IS NOT NULL
-DROP TABLE tabela1_aux
-go
-CREATE TABLE tabela1_aux (SERIE VARCHAR(10), ID_TABELA1 INT)
-INSERT INTO tabela1_aux
-SELECT * FROM TABELA1
+----create table tabela2 (id_tabela2 int identity(1,1) primary key not null, serie2 varchar(10) --FILHA da tabela1 
+----constraint 	fk_serie foreign key (serie2) references tabela1 (serie)
+----)
+
+----create table tabela3 (id_tabela3 int identity(1,1) primary key not null, serie varchar(3) DEFAULT NULL, id int, id_tabela2 INT	--FILHA da tabela2 - SEM FK COM A SERIE 
+----constraint 	fk_id_pk foreign key (id_tabela2) references tabela2 (id_tabela2)
+----)
+
+----create table tabela4 (id_tabela4 int, serie varchar(3) , id int, id_tabela3 INT 	 --FILHA da tabela2 - pk composta com a coluna SERIE
+----CONSTRAINT 	PK_COMPOSTA PRIMARY KEY (id_tabela4, serie)
+----constraint 	fk_id_pk2 foreign key (id_tabela3) references tabela3 (id_tabela3)
+----)
+
+--CREATE TABLE TABELA5 (ID INT, SERIE VARCHAR(3))
+--go
+--CREATE TABLE TABELA6 (ID INT)
+--go
 
 
-go
+---- popula a tabela 1
+--set nocount on
+--INSERT INTO tabela1 VALUES ( CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID())),
+--							 CONVERT(INT,(RAND()*1000))
+--						  )
+--GO 10000
+
+--IF OBJECT_ID('TEMPDB..tabela1_aux') IS NOT NULL
+--DROP TABLE tabela1_aux
+--go
+--CREATE TABLE tabela1_aux (SERIE VARCHAR(10), ID_TABELA1 INT)
+--INSERT INTO tabela1_aux
+--SELECT * FROM TABELA1
+
+
+--go
+
 ----------------------------------- começo da proc
 
---create procedure delete_lote_sp
---(
+ALTER procedure delete_lote_sp
+(
 
---	 @tabela_delete	varchar(50)
---	,@tabela_aux	varchar(50)
---	,@colunas_chave	varchar(150) --SEPARADO POR VÍRGULAS
---	,@lote int
---	,@executar bit = 0 -- 0 = apenas exibe o script final / 1 = executa o delete por lote
---)
---as begin
+	 @tabela_delete	varchar(50)
+	,@tabela_aux	varchar(50)
+	,@colunas_chave	varchar(150) --SEPARADO POR VÍRGULAS
+	,@lote int
+	,@executar bit = 0 -- 0 = apenas exibe o script final / 1 = executa o delete por lote
+)
+as begin
 
-/* excluir */
-declare 
- @tabela_delete	varchar(50)
-,@tabela_aux	varchar(50)
-,@colunas_chave	varchar(150) 
-,@lote int
-,@executar bit = 1
+--/* excluir */
+--declare 
+-- @tabela_delete	varchar(50)
+--,@tabela_aux	varchar(50)
+--,@colunas_chave	varchar(150) 
+--,@lote int
+--,@executar bit = 1
 
-set @tabela_delete = 'tabela1'
-set @tabela_aux = 'tabela1_aux'
-set @colunas_chave = 'serie,aaaaa'--'serie,id_tabela1'
-set @lote = 1000
+--set @tabela_delete = 'tabela1'
+--set @tabela_aux = 'tabela1_aux'
+--set @colunas_chave = 'serie,aaaaa'--'serie,id_tabela1'
+--set @lote = 1000
 /************************************************/
 
 BEGIN TRY 
@@ -107,12 +108,14 @@ CREATE TABLE #TEMP_SCRIPTS
 		 CONVERT(VARCHAR(10),DATEDIFF(MS,DT_INICIO_EXEC,DT_FIM_EXEC)))
 )
 
+CREATE INDEX IX_TEMP ON #TEMP_SCRIPTS (ID,FEITO) INCLUDE (QUERY,SUCESSO,DT_INICIO_EXEC,DT_FIM_EXEC,TEMPO_TOTAL_EXECUCAO)
+
 -- REALIZA O SPLIT STRING DA @colunas_chave
 ----------------------------------------------------------------------------------------
-IF OBJECT_ID('TEMP_STRING_SPLIT_delete_lote_sp') IS NOT NULL
-DROP TABLE TEMP_STRING_SPLIT_delete_lote_sp
+IF OBJECT_ID('TEMPDB..##TEMP_STRING_SPLIT_delete_lote_sp') IS NOT NULL
+DROP TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
 
-CREATE TABLE TEMP_STRING_SPLIT_delete_lote_sp
+CREATE TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
 (
 ID INT,
 COLUNA VARCHAR(100),
@@ -123,10 +126,10 @@ insert into #TEMP_SCRIPTS (QUERY)
 SELECT '
 -- REALIZA O SPLIT STRING DA @colunas_chave
 ----------------------------------------------------------------------------------------
-IF OBJECT_ID(''TEMP_STRING_SPLIT_delete_lote_sp'') IS NOT NULL
-DROP TABLE TEMP_STRING_SPLIT_delete_lote_sp
+IF OBJECT_ID(''TEMPDB..##TEMP_STRING_SPLIT_delete_lote_sp'') IS NOT NULL
+DROP TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
 
-CREATE TABLE TEMP_STRING_SPLIT_delete_lote_sp
+CREATE TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
 (
 ID INT,
 COLUNA VARCHAR(100),
@@ -151,7 +154,7 @@ declare @colunas_chave	varchar(150) = ' + '''' + @colunas_chave + '''' + '
 		ltrim(rtrim(substring(@colunas_chave, fim + 1, coalesce(nullif(charindex('','', @colunas_chave, fim + 1), 0), len_string)-fim-1)))
 	from CTE where fim < len_string
 )
-INSERT INTO TEMP_STRING_SPLIT_delete_lote_sp
+INSERT INTO ##TEMP_STRING_SPLIT_delete_lote_sp
 SELECT 
 id, 
 COLUNA = elemento,
@@ -159,9 +162,6 @@ script_ligacao = ''and A.'' + elemento + '' = B.'' + elemento
 FROM CTE
 option (maxrecursion 0)
 '
-
---SELECT *
---FROM #TEMP_SCRIPTS
 
 insert into #TEMP_SCRIPTS (QUERY)
 SELECT '
@@ -184,21 +184,21 @@ IF EXISTS (
 BEGIN
 	
 	SELECT @COLUNAS_NAO_EXISTEM = @COLUNAS_NAO_EXISTEM + COLUNA + '', ''
-	FROM TEMP_STRING_SPLIT_delete_lote_sp TEMP
+	FROM ##TEMP_STRING_SPLIT_delete_lote_sp TEMP
 	WHERE NOT EXISTS (
 						SELECT *
 						FROM INFORMATION_SCHEMA.COLUMNS IS_COL
 						WHERE IS_COL.COLUMN_NAME = TEMP.COLUNA
 						AND IS_COL.TABLE_NAME = @tabela_delete)
 	
-	SELECT @COLUNAS_NAO_EXISTEM = ''As seguintes colunas chaves não existem na @tabela_delete: '' + CASE WHEN NULLIF(@COLUNAS_NAO_EXISTEM,'''') IS NOT NULL THEN LEFT(@COLUNAS_NAO_EXISTEM,LEN(@COLUNAS_NAO_EXISTEM)-1) ELSE NULL END
+	SELECT @COLUNAS_NAO_EXISTEM = ''As seguintes colunas chaves não existem na @tabela_delete: '' + CASE WHEN NULLIF(@COLUNAS_NAO_EXISTEM,'''') IS NOT NULL THEN QUOTENAME(LEFT(@COLUNAS_NAO_EXISTEM,LEN(@COLUNAS_NAO_EXISTEM)-1)) ELSE NULL END
 
 	IF ISNULL(@COLUNAS_NAO_EXISTEM,'''') <> ''''
 	BEGIN
 	   RAISERROR (@COLUNAS_NAO_EXISTEM,16,0)  
 	   PRINT @COLUNAS_NAO_EXISTEM
 	   SELECT @COLUNAS_NAO_EXISTEM 
-	   return @COLUNAS_NAO_EXISTEM
+	   --return @COLUNAS_NAO_EXISTEM
 	END
 
 
@@ -211,7 +211,7 @@ BEGIN
 	--DECLARE @tabela_delete VARCHAR(150) = ''TABELA4''
 	--DECLARE @COLUNAS_NAO_EXISTEM VARCHAR(8000) = '''' 
 	SELECT @COLUNAS_NAO_EXISTEM = @COLUNAS_NAO_EXISTEM + COLUNA + '', ''
-	FROM TEMP_STRING_SPLIT_delete_lote_sp TEMP
+	FROM ##TEMP_STRING_SPLIT_delete_lote_sp TEMP
 	WHERE NOT EXISTS ( 
 						SELECT SC.name
 						FROM SYS.indexes SI
@@ -224,20 +224,19 @@ BEGIN
 
 	--SELECT @COLUNAS_NAO_EXISTEM
 
-	SELECT @COLUNAS_NAO_EXISTEM = ''As seguintes colunas chaves não existem na @tabela_delete: '' + CASE WHEN NULLIF(@COLUNAS_NAO_EXISTEM,'''') IS NOT NULL THEN LEFT(@COLUNAS_NAO_EXISTEM,LEN(@COLUNAS_NAO_EXISTEM)-1) ELSE NULL END
+	SELECT @COLUNAS_NAO_EXISTEM = ''As seguintes colunas chaves não existem na @tabela_delete: '' + CASE WHEN NULLIF(@COLUNAS_NAO_EXISTEM,'''') IS NOT NULL THEN QUOTENAME(LEFT(@COLUNAS_NAO_EXISTEM,LEN(@COLUNAS_NAO_EXISTEM)-1)) ELSE NULL END
 
 	IF ISNULL(@COLUNAS_NAO_EXISTEM,'''') <> ''''
 	BEGIN
-	   RAISERROR (@COLUNAS_NAO_EXISTEM,16,0)
+	   RAISERROR (@COLUNAS_NAO_EXISTEM,16,0)  
+	   PRINT @COLUNAS_NAO_EXISTEM
+	   SELECT @COLUNAS_NAO_EXISTEM 
 	END
 						
 
 END	--FIM DO ELSE
 -- FIM DA VALIDAÇÃO TABELA CLUSTERED
 '
-
---SELECT *
---FROM #TEMP_SCRIPTS
 
  insert into #TEMP_SCRIPTS (QUERY)
 SELECT '
@@ -252,27 +251,57 @@ IF NOT EXISTS (
 				AND name = ''FEITO_LOTE''
 			  )
 BEGIN
-	ALTER TABLE ' + '' + @tabela_aux + '' + ' ADD FEITO_LOTE BIT 
+	ALTER TABLE ' + '' + @tabela_aux + '' + ' ADD FEITO_LOTE BIT DEFAULT 0 
 END
 ' +
 CASE WHEN @executar = 0 THEN 
 'GO' ELSE '' END 
 
 
---select *
---from #TEMP_SCRIPTS
+insert into #TEMP_SCRIPTS (QUERY)
+SELECT '
+-- CRIA ÍNDICE PARA MELHOR ATENDER A QUERY 
+----------------------------------------------------------------------------------------
+IF EXISTS (
+			SELECT *
+			FROM SYS.indexes
+			WHERE OBJECT_NAME(object_id) = ' + '''' + @tabela_aux + '''' + '
+			AND TYPE IN (1,2)
+			AND NAME = ''IX_TEMP_LOTE''
+		  )							 
+BEGIN
+DROP INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' 
+END
+
+IF EXISTS (
+			SELECT *
+			FROM SYS.indexes
+			WHERE OBJECT_NAME(object_id) = ' + '''' + @tabela_aux + '''' + '
+			AND TYPE IN (1,2)
+			AND NAME = ''IX_TEMP_LOTE2''
+		  )							 
+BEGIN
+DROP INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' 
+END
+
+CREATE INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' (' + @colunas_chave + ') INCLUDE (FEITO_LOTE)
+CREATE INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' (FEITO_LOTE) INCLUDE (' + @colunas_chave + ')
 
 
+'
 
 SELECT @query = '
 -- MONTA O DELETE POR LOTE
 ----------------------------------------------------------------------------------------
 declare @LIGACAO varchar(8000) = ''''
+declare @colunas_cross varchar(8000) = ''''
 
-select @LIGACAO = @LIGACAO + script_ligacao + char(13) + char(10) + char(9)
-from  TEMP_STRING_SPLIT_delete_lote_sp
+select @LIGACAO = @LIGACAO + script_ligacao + char(13) + char(10) + char(9),
+	   @colunas_cross = @colunas_cross + coluna + '',''
+from  ##TEMP_STRING_SPLIT_delete_lote_sp
 
---select @LIGACAO
+
+select @colunas_cross = left(@colunas_cross,len(@colunas_cross)-1) 
 
 DECLARE @QUERY VARCHAR(MAX) = ''''
 select @QUERY = ''
@@ -280,20 +309,20 @@ select @QUERY = ''
 ----------------------------------------------------------------------------------------
 SET NOCOUNT ON
 DECLARE @QNTD_REGISTROS INT
-WHILE (SELECT COUNT(*) FROM ' + @tabela_aux + ' WHERE ISNULL(FEITO_LOTE,0) = 0) > 0
+WHILE (SELECT COUNT(*) FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0) > 0
 BEGIN
 
 	SELECT @QNTD_REGISTROS = COUNT(*)
-	FROM ' + @tabela_aux + ' WHERE ISNULL(FEITO_LOTE,0) = 0	
+	FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0	
 
 	PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
 
 	DELETE tabela1
 	FROM ' + @tabela_delete + ' A
-	CROSS APPLY (SELECT TOP 1000 *
+	CROSS APPLY (SELECT TOP 1000 ' + ''' + @colunas_cross + ''' + ' 
 				 FROM ' + @tabela_aux + ' AUX
-				 where ISNULL(FEITO_LOTE,0) = 0
-				 ORDER BY serie) B
+				 where FEITO_LOTE = 0
+				 ORDER BY ' + @colunas_chave + ') B
 	WHERE 1=1
 	' + ''' + @LIGACAO + ''' + '
 	
@@ -301,10 +330,10 @@ BEGIN
 	UPDATE A
 	SET FEITO_LOTE = 1
 	FROM ' + @tabela_aux + ' A
-	CROSS APPLY (SELECT TOP 1000 *
+	CROSS APPLY (SELECT TOP 1000 ' + ''' + @colunas_cross + ''' + ' 
 				 FROM ' + @tabela_aux + ' AUX2
-				 where ISNULL(FEITO_LOTE,0) = 0
-				 ORDER BY AUX2.serie) B
+				 where FEITO_LOTE = 0
+				 ORDER BY ' + @colunas_chave + ') B
 	WHERE 1=1
 	' + ''' + @LIGACAO + ''' + '
 	
@@ -312,7 +341,7 @@ BEGIN
 END	-- fim do while
 
 SELECT @QNTD_REGISTROS = COUNT(*)
-FROM ' + @tabela_aux + ' WHERE ISNULL(FEITO_LOTE,0) = 0	
+FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0	
 
 PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
 -----------------------------------------------------------------------------------------------------
@@ -325,14 +354,15 @@ print (@QUERY) --EXIBE O DELETE EM LOTE SEM EXECUTAR
 ' WHEN @executar = 1 THEN 
 'EXEC (@QUERY)' END + ' 
 
-IF OBJECT_ID (''TEMP_STRING_SPLIT_delete_lote_sp'') IS NOT NULL
-DROP TABLE TEMP_STRING_SPLIT_delete_lote_sp
+IF OBJECT_ID (''tempdb..##TEMP_STRING_SPLIT_delete_lote_sp'') IS NOT NULL
+DROP TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
+
+--IF OBJECT_ID (''tempdb..#TEMP_SCRIPTS'') IS NOT NULL
+--DROP TABLE #TEMP_SCRIPTS
 '
 
 INSERT INTO #TEMP_SCRIPTS (QUERY)
 SELECT @query
---select *
---from #TEMP_SCRIPTS
 
 DECLARE 
 @ID INT,
@@ -363,33 +393,20 @@ BEGIN
 	   WHERE ID = @ID
 
 	END
-PRINT '
-
-Para visualizar o tempo de execução execute: 
-
-SELECT *
-FROM #TEMP_SCRIPTS'
-
 END
 
-if @executar = 0
+SELECT case when @executar = 1 then 'Delete executado com sucesso! Resumo abaixo:'
+else 'Scrips criados com sucesso! Copie a coluna query logo abaixo.' END
+
 SELECT *
 FROM #TEMP_SCRIPTS
 
 END TRY
 BEGIN CATCH
 
-PRINT N'Error Line = ' + CAST(ERROR_LINE() AS nvarchar(100));
 PRINT N'Error Message = ' + CAST(ERROR_MESSAGE() AS nvarchar(100));
---PRINT @ERRO
 
 END CATCH
 
---end -- fim da proc
+end -- fim da proc
 
-
-
-------------------------------
-
- 
--- DROP TABLE TEMP_STRING_SPLIT_delete_lote_sp

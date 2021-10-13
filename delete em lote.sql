@@ -65,7 +65,7 @@ ALTER procedure delete_lote_sp
 	 @tabela_delete	varchar(50)
 	,@tabela_aux	varchar(50)
 	,@colunas_chave	varchar(150) --SEPARADO POR VÍRGULAS
-	,@lote int
+	,@lote VARCHAR(10)
 	,@executar bit = 0 -- 0 = apenas exibe o script final / 1 = executa o delete por lote
 )
 as begin
@@ -251,7 +251,7 @@ IF NOT EXISTS (
 				AND name = ''FEITO_LOTE''
 			  )
 BEGIN
-	ALTER TABLE ' + '' + @tabela_aux + '' + ' ADD FEITO_LOTE BIT DEFAULT 0 
+	ALTER TABLE ' + '' + @tabela_aux + '' + ' ADD FEITO_LOTE BIT DEFAULT 0 NOT NULL 
 END
 ' +
 CASE WHEN @executar = 0 THEN 
@@ -319,7 +319,7 @@ BEGIN
 
 	DELETE tabela1
 	FROM ' + @tabela_delete + ' A
-	CROSS APPLY (SELECT TOP 1000 ' + ''' + @colunas_cross + ''' + ' 
+	CROSS APPLY (SELECT TOP ' + @lote + ''' + @colunas_cross + ''' + ' 
 				 FROM ' + @tabela_aux + ' AUX
 				 where FEITO_LOTE = 0
 				 ORDER BY ' + @colunas_chave + ') B
@@ -330,7 +330,7 @@ BEGIN
 	UPDATE A
 	SET FEITO_LOTE = 1
 	FROM ' + @tabela_aux + ' A
-	CROSS APPLY (SELECT TOP 1000 ' + ''' + @colunas_cross + ''' + ' 
+	CROSS APPLY (SELECT TOP ' + @lote + ''' + @colunas_cross + ''' + ' 
 				 FROM ' + @tabela_aux + ' AUX2
 				 where FEITO_LOTE = 0
 				 ORDER BY ' + @colunas_chave + ') B

@@ -58,6 +58,11 @@
 --go
 
 ----------------------------------- começo da proc
+if OBJECT_ID('delete_lote_sp','P') IS NULL
+BEGIN
+EXEC ('create procedure delete_lote_sp AS RETURN 0')
+END
+GO
 
 ALTER procedure delete_lote_sp
 (
@@ -112,10 +117,10 @@ CREATE INDEX IX_TEMP ON #TEMP_SCRIPTS (ID,FEITO) INCLUDE (QUERY,SUCESSO,DT_INICI
 
 -- REALIZA O SPLIT STRING DA @colunas_chave
 ----------------------------------------------------------------------------------------
-IF OBJECT_ID('TEMPDB..##TEMP_STRING_SPLIT_delete_lote_sp') IS NOT NULL
-DROP TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
+IF OBJECT_ID('TEMPDB..##TEMP_STRING_SPLIT_DELETE_LOTE_SP') IS NOT NULL
+DROP TABLE ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
 
-CREATE TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
+CREATE TABLE ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
 (
 ID INT,
 COLUNA VARCHAR(100),
@@ -126,10 +131,12 @@ insert into #TEMP_SCRIPTS (QUERY)
 SELECT '
 -- REALIZA O SPLIT STRING DA @colunas_chave
 ----------------------------------------------------------------------------------------
-IF OBJECT_ID(''TEMPDB..##TEMP_STRING_SPLIT_delete_lote_sp'') IS NOT NULL
-DROP TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
+SET NOCOUNT ON
 
-CREATE TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
+IF OBJECT_ID(''TEMPDB..##TEMP_STRING_SPLIT_DELETE_LOTE_SP'') IS NOT NULL
+DROP TABLE ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
+
+CREATE TABLE ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
 (
 ID INT,
 COLUNA VARCHAR(100),
@@ -154,7 +161,7 @@ declare @colunas_chave	varchar(150) = ' + '''' + @colunas_chave + '''' + '
 		ltrim(rtrim(substring(@colunas_chave, fim + 1, coalesce(nullif(charindex('','', @colunas_chave, fim + 1), 0), len_string)-fim-1)))
 	from CTE where fim < len_string
 )
-INSERT INTO ##TEMP_STRING_SPLIT_delete_lote_sp
+INSERT INTO ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
 SELECT 
 id, 
 COLUNA = elemento,
@@ -184,7 +191,7 @@ IF EXISTS (
 BEGIN
 	
 	SELECT @COLUNAS_NAO_EXISTEM = @COLUNAS_NAO_EXISTEM + COLUNA + '', ''
-	FROM ##TEMP_STRING_SPLIT_delete_lote_sp TEMP
+	FROM ##TEMP_STRING_SPLIT_DELETE_LOTE_SP TEMP
 	WHERE NOT EXISTS (
 						SELECT *
 						FROM INFORMATION_SCHEMA.COLUMNS IS_COL
@@ -211,7 +218,7 @@ BEGIN
 	--DECLARE @tabela_delete VARCHAR(150) = ''TABELA4''
 	--DECLARE @COLUNAS_NAO_EXISTEM VARCHAR(8000) = '''' 
 	SELECT @COLUNAS_NAO_EXISTEM = @COLUNAS_NAO_EXISTEM + COLUNA + '', ''
-	FROM ##TEMP_STRING_SPLIT_delete_lote_sp TEMP
+	FROM ##TEMP_STRING_SPLIT_DELETE_LOTE_SP TEMP
 	WHERE NOT EXISTS ( 
 						SELECT SC.name
 						FROM SYS.indexes SI
@@ -298,7 +305,7 @@ declare @colunas_cross varchar(8000) = ''''
 
 select @LIGACAO = @LIGACAO + script_ligacao + char(13) + char(10) + char(9),
 	   @colunas_cross = @colunas_cross + coluna + '',''
-from  ##TEMP_STRING_SPLIT_delete_lote_sp
+from  ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
 
 
 select @colunas_cross = left(@colunas_cross,len(@colunas_cross)-1) 
@@ -317,9 +324,9 @@ BEGIN
 
 	PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
 
-	DELETE tabela1
+	DELETE A
 	FROM ' + @tabela_delete + ' A
-	CROSS APPLY (SELECT TOP ' + @lote + ''' + @colunas_cross + ''' + ' 
+	CROSS APPLY (SELECT TOP ' + @lote + ' '' + @colunas_cross + ''' + ' 
 				 FROM ' + @tabela_aux + ' AUX
 				 where FEITO_LOTE = 0
 				 ORDER BY ' + @colunas_chave + ') B
@@ -330,7 +337,7 @@ BEGIN
 	UPDATE A
 	SET FEITO_LOTE = 1
 	FROM ' + @tabela_aux + ' A
-	CROSS APPLY (SELECT TOP ' + @lote + ''' + @colunas_cross + ''' + ' 
+	CROSS APPLY (SELECT TOP ' + @lote + ' '' + @colunas_cross + ''' + ' 
 				 FROM ' + @tabela_aux + ' AUX2
 				 where FEITO_LOTE = 0
 				 ORDER BY ' + @colunas_chave + ') B
@@ -354,11 +361,8 @@ print (@QUERY) --EXIBE O DELETE EM LOTE SEM EXECUTAR
 ' WHEN @executar = 1 THEN 
 'EXEC (@QUERY)' END + ' 
 
-IF OBJECT_ID (''tempdb..##TEMP_STRING_SPLIT_delete_lote_sp'') IS NOT NULL
-DROP TABLE ##TEMP_STRING_SPLIT_delete_lote_sp
-
---IF OBJECT_ID (''tempdb..#TEMP_SCRIPTS'') IS NOT NULL
---DROP TABLE #TEMP_SCRIPTS
+IF OBJECT_ID (''tempdb..##TEMP_STRING_SPLIT_DELETE_LOTE_SP'') IS NOT NULL
+DROP TABLE ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
 '
 
 INSERT INTO #TEMP_SCRIPTS (QUERY)
@@ -401,10 +405,13 @@ else 'Scrips criados com sucesso! Copie a coluna query logo abaixo.' END
 SELECT *
 FROM #TEMP_SCRIPTS
 
+IF OBJECT_ID ('tempdb..#TEMP_SCRIPTS') IS NOT NULL
+DROP TABLE #TEMP_SCRIPTS
+
 END TRY
 BEGIN CATCH
 
-PRINT N'Error Message = ' + CAST(ERROR_MESSAGE() AS nvarchar(100));
+PRINT N'Error Message = ' + CAST(ERROR_MESSAGE() AS varchar(8000));
 
 END CATCH
 

@@ -1,4 +1,4 @@
-use tempdb
+use DTS_TOOLS
 go
 ----------------------------------------------------------------------------------------------------------------------------------
 -- tabelas teste
@@ -19,7 +19,10 @@ drop table if exists tabela1
 
 
 create table tabela1 (serie varchar(10) --primary key not null 
-,id_tabela1 int)
+,id_tabela1 int	IDENTITY(1,1)  Primary key not null 
+,VALOR varchar(10)
+,codigo varchar(10)
+)
 
 --create table tabela2 (id_tabela2 int identity(1,1) primary key not null, serie2 varchar(10) --FILHA da tabela1 
 --constraint 	fk_serie foreign key (serie2) references tabela1 (serie)
@@ -43,16 +46,23 @@ go
 -- popula a tabela 1
 set nocount on
 INSERT INTO tabela1 VALUES ( CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID())),
-							 CONVERT(INT,(RAND()*1000))
+							 --CONVERT(INT,(RAND()*1000)),
+							 CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID())),
+							 CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID()))
 						  )
 GO 10000
 
 IF OBJECT_ID('TEMPDB..tabela1_aux') IS NOT NULL
 DROP TABLE tabela1_aux
 go
-CREATE TABLE tabela1_aux (SERIE VARCHAR(10), ID_TABELA1 INT)
+CREATE TABLE tabela1_aux (SERIE VARCHAR(10), ID_TABELA1 INT, VALOR VARCHAR(10),codigo varchar(10))
 INSERT INTO tabela1_aux
-SELECT * FROM TABELA1
+SELECT 
+serie
+,id_tabela1
+,CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID()))
+,CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID()))
+FROM TABELA1
 
 
 go

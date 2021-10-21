@@ -180,7 +180,7 @@ BEGIN
 
 	--SELECT @COLUNAS_NAO_EXISTEM
 
-	SELECT @COLUNAS_NAO_EXISTEM = ''As seguintes colunas chaves não existem na @tabela_delete: '' + CASE WHEN NULLIF(@COLUNAS_NAO_EXISTEM,'''') IS NOT NULL THEN QUOTENAME(LEFT(@COLUNAS_NAO_EXISTEM,LEN(@COLUNAS_NAO_EXISTEM)-1)) ELSE NULL END
+	SELECT @COLUNAS_NAO_EXISTEM = ''A seguinte coluna não é uma PRIMARY KEY da tabela @tabela_delete: '' + CASE WHEN NULLIF(@COLUNAS_NAO_EXISTEM,'''') IS NOT NULL THEN QUOTENAME(LEFT(@COLUNAS_NAO_EXISTEM,LEN(@COLUNAS_NAO_EXISTEM)-1)) ELSE NULL END
 
 	IF ISNULL(@COLUNAS_NAO_EXISTEM,'''') <> ''''
 	BEGIN
@@ -218,7 +218,7 @@ insert into #TEMP_SCRIPTS (QUERY)
 SELECT '
 -- CRIA ÍNDICE PARA MELHOR ATENDER A QUERY 
 ----------------------------------------------------------------------------------------
-IF EXISTS (
+IF NOT EXISTS (
 			SELECT *
 			FROM SYS.indexes
 			WHERE OBJECT_NAME(object_id) = ' + '''' + @tabela_aux + '''' + '
@@ -226,10 +226,10 @@ IF EXISTS (
 			AND NAME = ''IX_TEMP_LOTE''
 		  )							 
 BEGIN
-DROP INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' 
+CREATE INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' (' + @colunas_chave + ', FEITO_LOTE) 
 END
 
-IF EXISTS (
+IF NOT EXISTS (
 			SELECT *
 			FROM SYS.indexes
 			WHERE OBJECT_NAME(object_id) = ' + '''' + @tabela_aux + '''' + '
@@ -237,11 +237,8 @@ IF EXISTS (
 			AND NAME = ''IX_TEMP_LOTE2''
 		  )							 
 BEGIN
-DROP INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' 
+CREATE INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' (FEITO_LOTE,' + @colunas_chave + ')
 END
-
-CREATE INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' (' + @colunas_chave + ') INCLUDE (FEITO_LOTE)
-CREATE INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' (FEITO_LOTE) INCLUDE (' + @colunas_chave + ')
 
 
 '
@@ -260,28 +257,35 @@ from  ##TEMP_STRING_SPLIT_DELETE_LOTE_SP
 select @colunas_cross = left(@colunas_cross,len(@colunas_cross)-1) 
 
 DECLARE @QUERY VARCHAR(MAX) = ''''
+		
 select @QUERY = ''
 -- EXIBINDO O DELETE POR LOTE
 ----------------------------------------------------------------------------------------
 SET NOCOUNT ON
 DECLARE @QNTD_REGISTROS INT
+		,@TEMPO_DELETE VARCHAR(4000) = '''''''' 
+		,@TEMPO_INICIO DATETIME2 = NULL
+		,@MSG VARCHAR(4000) = ''''''''
 WHILE (SELECT COUNT(*) FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0) > 0
 BEGIN
 
 	SELECT @QNTD_REGISTROS = COUNT(*)
-	FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0	
+	FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0
+	
+	SELECT @MSG = ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+	RAISERROR( @MSG ,0,1) WITH NOWAIT
 
-	PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+	SELECT @TEMPO_INICIO = GETDATE()
 
 	DELETE A
 	FROM ' + @tabela_delete + ' A
 	CROSS APPLY (SELECT TOP ' + @lote + ' '' + @colunas_cross + ''' + ' 
-				 FROM ' + @tabela_aux + ' AUX
+				 FROM ' + @tabela_aux + ' AUX --WITH (INDEX (IX_TEMP_LOTE2))
 				 where FEITO_LOTE = 0
 				 ORDER BY ' + @colunas_chave + ') B
 	WHERE 1=1
 	' + ''' + @LIGACAO + ''' + '
-	
+	option(recompile)
 
 	UPDATE A
 	SET FEITO_LOTE = 1
@@ -292,6 +296,14 @@ BEGIN
 				 ORDER BY ' + @colunas_chave + ') B
 	WHERE 1=1
 	' + ''' + @LIGACAO + ''' + '
+
+	SELECT @TEMPO_DELETE = CONVERT(VARCHAR(10),DATEDIFF(HH,@TEMPO_INICIO,GETDATE()) % 60) + '''' Hora : '''' +
+CONVERT(VARCHAR(10),DATEDIFF(MI,@TEMPO_INICIO,GETDATE()) % 60) + '''' Min : '''' +
+CONVERT(VARCHAR(10),DATEDIFF(SS,@TEMPO_INICIO,GETDATE()) % 60) + '''' Seg : '''' + 
+CONVERT(VARCHAR(10),DATEDIFF(MS,@TEMPO_INICIO,GETDATE()) % 1000) + '''' Ms''''
+
+SELECT @MSG = ''''	- Tempo execução do lote: '''' + @TEMPO_DELETE
+RAISERROR( @MSG , 0,1) WITH NOWAIT 
 	
 
 END	-- fim do while
@@ -299,7 +311,8 @@ END	-- fim do while
 SELECT @QNTD_REGISTROS = COUNT(*)
 FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0	
 
-PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+SELECT @MSG = ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+RAISERROR(@MSG, 0,1) WITH NOWAIT
 -----------------------------------------------------------------------------------------------------
 
 ' +

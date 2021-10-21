@@ -3,14 +3,15 @@ USE DTS_TOOLS
 GO
 
 /*
+
 SET STATISTICS TIME OFF
 EXEC delete_lote_sp
 @tabela_delete = 'tabela1'
 ,@tabela_aux = 'tabela1_aux'
-,@colunas_chave = 'serie,ID_TABELA1'
---,@colunas_chave = 'serie'
+,@colunas_chave = 'ID_TABELA1'
 ,@lote = 1000
-,@executar = 0
+,@executar = 1
+
 */
 
 

@@ -18,7 +18,8 @@ drop table if exists tabela2
 drop table if exists tabela1
 
 
-create table tabela1 (serie varchar(10) --primary key not null 
+create table tabela1 (
+serie varchar(10) --primary key not null 
 ,id_tabela1 int	IDENTITY(1,1)  Primary key not null 
 ,VALOR varchar(10)
 ,codigo varchar(10)
@@ -52,7 +53,7 @@ INSERT INTO tabela1 VALUES ( CONVERT(VARCHAR(10),CONVERT(VARCHAR(255),NEWID())),
 						  )
 GO 10000
 
-IF OBJECT_ID('TEMPDB..tabela1_aux') IS NOT NULL
+IF OBJECT_ID('tabela1_aux') IS NOT NULL
 DROP TABLE tabela1_aux
 go
 CREATE TABLE tabela1_aux (SERIE VARCHAR(10), ID_TABELA1 INT, VALOR VARCHAR(10),codigo varchar(10))

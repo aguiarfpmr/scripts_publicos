@@ -63,10 +63,11 @@ CREATE TABLE #TEMP_SCRIPTS
 	,DT_INICIO_EXEC DATETIME2 DEFAULT NULL
 	,DT_FIM_EXEC	DATETIME2 DEFAULT NULL
 	,TEMPO_TOTAL_EXECUCAO AS 
-		(CONVERT(VARCHAR(10),DATEDIFF(HH,DT_INICIO_EXEC,DT_FIM_EXEC)) + ':' +
-		 CONVERT(VARCHAR(10),DATEDIFF(MI,DT_INICIO_EXEC,DT_FIM_EXEC)) + ':' +
-		 CONVERT(VARCHAR(10),DATEDIFF(SS,DT_INICIO_EXEC,DT_FIM_EXEC)) + ':' +
-		 CONVERT(VARCHAR(10),DATEDIFF(MS,DT_INICIO_EXEC,DT_FIM_EXEC)))
+		(CONVERT(VARCHAR(10),DATEDIFF(HH,DT_INICIO_EXEC,DT_FIM_EXEC) % 60) + ' Hora : ' +
+		 CONVERT(VARCHAR(10),DATEDIFF(MI,DT_INICIO_EXEC,DT_FIM_EXEC) % 60) + ' Min : ' +
+		 CONVERT(VARCHAR(10),DATEDIFF(SS,DT_INICIO_EXEC,DT_FIM_EXEC) % 60) + ' Seg : ' + 
+		 CONVERT(VARCHAR(10),DATEDIFF(MS,DT_INICIO_EXEC,DT_FIM_EXEC) % 1000) + ' Ms'
+		)
 )
 
 CREATE INDEX IX_TEMP ON #TEMP_SCRIPTS (ID,FEITO) INCLUDE (QUERY,SUCESSO,DT_INICIO_EXEC,DT_FIM_EXEC,TEMPO_TOTAL_EXECUCAO)
@@ -281,7 +282,7 @@ insert into #TEMP_SCRIPTS (QUERY)
 SELECT '
 -- CRIA ÍNDICE PARA MELHOR ATENDER A QUERY 
 ----------------------------------------------------------------------------------------
-IF EXISTS (
+IF NOT EXISTS (
 			SELECT *
 			FROM SYS.indexes
 			WHERE OBJECT_NAME(object_id) = ' + '''' + @tabela_aux + '''' + '
@@ -289,10 +290,10 @@ IF EXISTS (
 			AND NAME = ''IX_TEMP_LOTE''
 		  )							 
 BEGIN
-DROP INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' 
+CREATE INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' (' + @colunas_chave + ', FEITO_LOTE)
 END
 
-IF EXISTS (
+IF NOT EXISTS (
 			SELECT *
 			FROM SYS.indexes
 			WHERE OBJECT_NAME(object_id) = ' + '''' + @tabela_aux + '''' + '
@@ -300,11 +301,9 @@ IF EXISTS (
 			AND NAME = ''IX_TEMP_LOTE2''
 		  )							 
 BEGIN
-DROP INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' 
+CREATE INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' (FEITO_LOTE, ' + @colunas_chave + ')
 END
-
-CREATE INDEX IX_TEMP_LOTE ON ' +  @tabela_aux + ' (' + @colunas_chave + ') INCLUDE (FEITO_LOTE)
-CREATE INDEX IX_TEMP_LOTE2 ON ' +  @tabela_aux + ' (FEITO_LOTE) INCLUDE (' + @colunas_chave + ')
+			   
 '
 
 -- CRIA TABELA DE BACKUP
@@ -390,13 +389,19 @@ select @QUERY = ''
 ----------------------------------------------------------------------------------------
 SET NOCOUNT ON
 DECLARE @QNTD_REGISTROS INT
+		,@TEMPO_DELETE VARCHAR(4000) = '''''''' 
+		,@TEMPO_INICIO DATETIME2 = NULL
+		,@MSG VARCHAR(4000) = ''''''''
 WHILE (SELECT COUNT(*) FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0) > 0
 BEGIN
 
 	SELECT @QNTD_REGISTROS = COUNT(*)
 	FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0	
+	
+	SELECT @MSG = ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+	RAISERROR( @MSG ,0,1) WITH NOWAIT 
 
-	PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+	SELECT @TEMPO_INICIO = GETDATE()
 
 	UPDATE A
 	SET '' + @script_update + '' ' + case when @backup = 1 then '
@@ -420,14 +425,22 @@ BEGIN
 				 ORDER BY ' + @colunas_chave + ') B
 	WHERE 1=1
 	' + ''' + @LIGACAO + ''' + '
-	
+
+	SELECT @TEMPO_DELETE = CONVERT(VARCHAR(10),DATEDIFF(HH,@TEMPO_INICIO,GETDATE()) % 60) + '''' Hora : '''' +
+CONVERT(VARCHAR(10),DATEDIFF(MI,@TEMPO_INICIO,GETDATE()) % 60) + '''' Min : '''' +
+CONVERT(VARCHAR(10),DATEDIFF(SS,@TEMPO_INICIO,GETDATE()) % 60) + '''' Seg : '''' + 
+CONVERT(VARCHAR(10),DATEDIFF(MS,@TEMPO_INICIO,GETDATE()) % 1000) + '''' Ms''''
+
+SELECT @MSG = ''''	- Tempo execução do lote: '''' + @TEMPO_DELETE	
+RAISERROR( @MSG ,0,1) WITH NOWAIT 
 
 END	-- fim do while
 
 SELECT @QNTD_REGISTROS = COUNT(*)
 FROM ' + @tabela_aux + ' WHERE FEITO_LOTE = 0	
 
-PRINT ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+SELECT @MSG = ''''Quantidade de registros restantes: '''' + CONVERT(VARCHAR(10),@QNTD_REGISTROS )
+RAISERROR(@MSG, 0,1) WITH NOWAIT
 -----------------------------------------------------------------------------------------------------
 IF ' + convert(varchar,@backup) + ' = 1
 BEGIN

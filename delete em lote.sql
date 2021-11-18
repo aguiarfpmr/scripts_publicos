@@ -285,7 +285,7 @@ BEGIN
 				 ORDER BY ' + @colunas_chave + ') B
 	WHERE 1=1
 	' + ''' + @LIGACAO + ''' + '
-	option(recompile)
+	--option(recompile)
 
 	UPDATE A
 	SET FEITO_LOTE = 1

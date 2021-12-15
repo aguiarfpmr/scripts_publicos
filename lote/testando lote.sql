@@ -2,29 +2,49 @@
 USE DTS_TOOLS
 GO
 
-/*
+
 
 SET STATISTICS TIME OFF
-EXEC delete_lote_sp
-@tabela_delete = 'tabela1'
+
+
+
+EXEC UPDATE_OR_DELETE_LOTE
+ @COMANDO = 'delete'
+,@tabela_UPDATE_OR_DELETE_LOTE = 'tabela1'
 ,@tabela_aux = 'tabela1_aux'
 ,@colunas_chave = 'ID_TABELA1'
 ,@lote = 1000
-,@executar = 1
+,@executar = 0
 
-*/
 
+
+
+SELECT *
+FROM dbo.tabela1
+
+SELECT *
+FROM dbo.tabela1_aux
 
 SET STATISTICS TIME OFF
 DROP TABLE IF EXISTS tabela1_aux_BACKUP_UPDATE_LOTE_SP
-EXEC update_lote_sp
-@tabela_update = 'tabela1'
+
+
+EXEC UPDATE_OR_DELETE_LOTE
+ @COMANDO = 'update'
+,@tabela_UPDATE_OR_DELETE_LOTE = 'tabela1'
 ,@tabela_aux = 'tabela1_aux'
 ,@colunas_chave = 'ID_TABELA1'
 ,@colunas_update = 'VALOR,codigo'
 ,@lote = 1000
 ,@backup = 1
 ,@executar = 1
+
+
+
+SELECT * FROM [tabela1_aux_BACKUP_UPDATE_LOTE_SP]
+
+
+
 
 SELECT *
 FROM tabela1_aux_BACKUP_UPDATE_LOTE_SP

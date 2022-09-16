@@ -155,9 +155,6 @@ END;
 IF @resultado_texto = 1
 BEGIN
 
-    --DECLARE @id INT = 0
-    --DECLARE @query VARCHAR(MAX) = ''
-
     UPDATE dbo.TEMP_RELACIONAMENTOS
     SET FEITO = 0;
 
